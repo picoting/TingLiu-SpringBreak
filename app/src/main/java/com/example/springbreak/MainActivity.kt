@@ -5,6 +5,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.net.Uri
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.EditText
@@ -12,7 +13,9 @@ import android.widget.ListView
 import androidx.appcompat.app.AppCompatActivity
 import kotlin.random.Random
 import android.speech.RecognizerIntent
+import android.speech.tts.TextToSpeech.LANG_AVAILABLE
 import android.widget.Toast
+import java.util.Locale
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -36,6 +39,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var lastY: Float = 0.0f
     private var lastZ: Float = 0.0f
     private val shakeThreshold = 800
+
+    private var currentLanguage: String = "English"
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -56,6 +61,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             val cities = languageCitiesMap[language]
             val selectedCity = cities?.get(Random.nextInt(cities.size)) ?: ""
 
+            currentLanguage = language
             startSpeechToText(language)
 
             //editText.setText("$language - $selectedCity")
@@ -117,6 +123,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             val speed = sqrt((x - lastX).pow(2) + (y - lastY).pow(2) + (z - lastZ).pow(2)) / (currentTime - lastUpdate) * 10000
             if (speed > shakeThreshold) {
                 Toast.makeText(this, "shake!!!", Toast.LENGTH_SHORT).show()
+                launchGoogleMapsToCity(currentLanguage)
             }
 
             lastUpdate = currentTime
@@ -126,7 +133,36 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
+    private fun launchGoogleMapsToCity(selectedLanguage: String) {
+        val cities = languageCitiesMap[selectedLanguage]
+        val selectedCity = cities?.randomOrNull() ?: return
 
+        val gmmIntentUri = Uri.parse("geo:0,0?q=${Uri.encode(selectedCity)}")
+
+        val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+        mapIntent.setPackage("com.google.android.apps.maps")
+
+        startActivity(mapIntent)
+
+    }
+
+    private fun sayHelloInSelectedLanguage() {
+        currentLanguage?.let { languageCode ->
+            val locale = when (languageCode) {
+                "English" -> Locale.ENGLISH
+                "French" -> Locale.FRENCH
+                "Chinese" -> Locale.SIMPLIFIED_CHINESE
+                else -> Locale.ENGLISH // Default or handle unsupported language
+            }
+
+            if (textToSpeech.isLanguageAvailable(locale) == LANG_AVAILABLE) {
+                textToSpeech.language = locale
+                textToSpeech.speak("Hello", TextToSpeech.QUEUE_FLUSH, null, null)
+            } else {
+                Toast.makeText(this, "Language not supported or not available", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         //??
