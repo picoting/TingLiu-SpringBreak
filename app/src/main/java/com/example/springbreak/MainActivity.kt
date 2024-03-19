@@ -1,6 +1,10 @@
 package com.example.springbreak
 
 import android.content.Intent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.EditText
@@ -9,8 +13,10 @@ import androidx.appcompat.app.AppCompatActivity
 import kotlin.random.Random
 import android.speech.RecognizerIntent
 import android.widget.Toast
+import kotlin.math.pow
+import kotlin.math.sqrt
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private val languageCitiesMap = mapOf(
         "English" to listOf("London", "Boston"),
@@ -21,6 +27,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var editText: EditText
 
     private val speechRequestCode = 0
+
+    private lateinit var sensorManager: SensorManager
+    private var accelerometer: Sensor? = null
+
+    private var lastUpdate: Long = 0
+    private var lastX: Float = 0.0f
+    private var lastY: Float = 0.0f
+    private var lastZ: Float = 0.0f
+    private val shakeThreshold = 800
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -45,6 +60,15 @@ class MainActivity : AppCompatActivity() {
 
             //editText.setText("$language - $selectedCity")
         }
+
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+
+        // Register the sensor listener
+        if (accelerometer != null) {
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+
 
     }
 
@@ -81,5 +105,30 @@ class MainActivity : AppCompatActivity() {
                 editText.setText(it)
             }
         }
+    }
+
+    override fun onSensorChanged(event: SensorEvent) {
+        val currentTime = System.currentTimeMillis()
+        if ((currentTime - lastUpdate) > 100) {
+            val x = event.values[0]
+            val y = event.values[1]
+            val z = event.values[2]
+
+            val speed = sqrt((x - lastX).pow(2) + (y - lastY).pow(2) + (z - lastZ).pow(2)) / (currentTime - lastUpdate) * 10000
+            if (speed > shakeThreshold) {
+                Toast.makeText(this, "shake!!!", Toast.LENGTH_SHORT).show()
+            }
+
+            lastUpdate = currentTime
+            lastX = x
+            lastY = y
+            lastZ = z
+        }
+    }
+
+
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+        //??
     }
 }
