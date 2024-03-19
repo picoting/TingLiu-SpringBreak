@@ -13,6 +13,7 @@ import android.widget.ListView
 import androidx.appcompat.app.AppCompatActivity
 import kotlin.random.Random
 import android.speech.RecognizerIntent
+import android.speech.tts.TextToSpeech
 import android.speech.tts.TextToSpeech.LANG_AVAILABLE
 import android.widget.Toast
 import java.util.Locale
@@ -41,6 +42,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private val shakeThreshold = 800
 
     private var currentLanguage: String = "English"
+    private lateinit var textToSpeech: TextToSpeech
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -123,6 +125,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             val speed = sqrt((x - lastX).pow(2) + (y - lastY).pow(2) + (z - lastZ).pow(2)) / (currentTime - lastUpdate) * 10000
             if (speed > shakeThreshold) {
                 Toast.makeText(this, "shake!!!", Toast.LENGTH_SHORT).show()
+                sayHello()
                 launchGoogleMapsToCity(currentLanguage)
             }
 
@@ -146,8 +149,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     }
 
-    private fun sayHelloInSelectedLanguage() {
-        currentLanguage?.let { languageCode ->
+    private fun sayHello() {
+        currentLanguage.let { languageCode ->
             val locale = when (languageCode) {
                 "English" -> Locale.ENGLISH
                 "French" -> Locale.FRENCH
