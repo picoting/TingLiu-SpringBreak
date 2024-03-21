@@ -27,6 +27,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, TextToSpeech.OnIn
         "French" to listOf("Paris", "Montreal"),
         "Chinese" to listOf("Beijing", "Shanghai")
     )
+
+    private val languageCodeMap = mapOf(
+        "English" to "en",
+        "French" to "fr",
+        "Chinese" to "zh"
+    )
     private lateinit var listView: ListView
     private lateinit var editText: EditText
 
@@ -61,11 +67,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener, TextToSpeech.OnIn
 
         listView.setOnItemClickListener { _, _, position, _ ->
             val language = listView.getItemAtPosition(position) as String
+            val langCode = languageCodeMap[language] ?: Locale.getDefault().toLanguageTag()
             val cities = languageCitiesMap[language]
             val selectedCity = cities?.get(Random.nextInt(cities.size)) ?: ""
 
+            greetingSpoken = false
+
             currentLanguage = language
-            startSpeechToText(language)
+            startSpeechToText(langCode)
 
             //editText.setText("$language - $selectedCity")
         }
@@ -168,6 +177,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, TextToSpeech.OnIn
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         //??
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
     }
 
     override fun onInit(status: Int) {
