@@ -20,7 +20,7 @@ import java.util.Locale
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-class MainActivity : AppCompatActivity(), SensorEventListener {
+class MainActivity : AppCompatActivity(), SensorEventListener, TextToSpeech.OnInitListener {
 
     private val languageCitiesMap = mapOf(
         "English" to listOf("London", "Boston"),
@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private var currentLanguage: String = "English"
     private lateinit var textToSpeech: TextToSpeech
+    private var greetingSpoken: Boolean = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -77,20 +78,16 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
         }
 
+        textToSpeech = TextToSpeech(this, this)
+
 
     }
 
     private fun startSpeechToText(selectedLanguage: String) {
-        val locale = when (selectedLanguage) {
-            "English" -> "en-US"
-            "French" -> "fr-FR"
-            "Chinese" -> "zh-CN"
-            else -> "en-US" // default or error handling
-        }
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, selectedLanguage)
             putExtra(RecognizerIntent.EXTRA_PROMPT, "Please speak now")
         }
         try {
@@ -150,24 +147,33 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     }
 
     private fun sayHello() {
-        currentLanguage.let { languageCode ->
-            val locale = when (languageCode) {
-                "English" -> Locale.ENGLISH
-                "French" -> Locale.FRENCH
-                "Chinese" -> Locale.SIMPLIFIED_CHINESE
-                else -> Locale.ENGLISH // Default or handle unsupported language
-            }
+        if (::textToSpeech.isInitialized) { // This checks if textToSpeech has been initialized
+            currentLanguage.let { languageCode ->
+                val greeting = when (languageCode) {
+                    "English" -> "Hello"
+                    "French" -> "Bonjour"
+                    "Chinese" -> "你好"
+                    else -> "Hello"
+                }
 
-            if (textToSpeech.isLanguageAvailable(locale) == LANG_AVAILABLE) {
-                textToSpeech.language = locale
-                textToSpeech.speak("Hello", TextToSpeech.QUEUE_FLUSH, null, null)
-            } else {
-                Toast.makeText(this, "Language not supported or not available", Toast.LENGTH_SHORT).show()
+                if (!greetingSpoken) {
+                    textToSpeech.speak(greeting, TextToSpeech.QUEUE_FLUSH, null, "")
+                    greetingSpoken = true
+                }
             }
+        } else {
+            Toast.makeText(this, "Text to Speech not initialized", Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         //??
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            val locale = Locale(currentLanguage)
+            textToSpeech.setLanguage(locale)
+        }
     }
 }
